@@ -1,25 +1,17 @@
 import { Router } from 'express';
 import type Database from 'better-sqlite3';
 import { requireAuth } from '../middleware/auth.middleware.js';
+import { validateBody, validateQuery } from '../middleware/validate.middleware.js';
+import { paginationSchema, updateUserSchema, batchIdsSchema } from '../schemas/user.schemas.js';
 import { listUsers, getUserById, getUsersByIds, updateUser } from '../services/user.service.js';
-import { ValidationError } from '../middleware/error.middleware.js';
 
 const router = Router();
 
 // All user routes require authentication
 router.use('/users', requireAuth);
 
-router.get('/users/batch', (req, res) => {
-  const idsParam = req.query.ids as string | undefined;
-  if (!idsParam) {
-    throw new ValidationError('ids query parameter is required');
-  }
-
-  const ids = idsParam.split(',').filter(Boolean);
-  if (ids.length === 0) {
-    throw new ValidationError('At least one id is required');
-  }
-
+router.get('/users/batch', validateQuery(batchIdsSchema), (req, res) => {
+  const ids = (req.query.ids as string).split(',').filter(Boolean);
   const db = req.app.get('db') as Database.Database;
   const users = getUsersByIds(db, ids);
 
@@ -33,9 +25,9 @@ router.get('/users/:id', (req, res) => {
   res.json({ success: true, data: user });
 });
 
-router.get('/users', (req, res) => {
-  const page = parseInt(req.query.page as string) || 1;
-  const pageSize = parseInt(req.query.pageSize as string) || 20;
+router.get('/users', validateQuery(paginationSchema), (req, res) => {
+  const page = Number(req.query.page) || 1;
+  const pageSize = Number(req.query.pageSize) || 20;
 
   const db = req.app.get('db') as Database.Database;
   const result = listUsers(db, page, pageSize);
@@ -43,7 +35,7 @@ router.get('/users', (req, res) => {
   res.json({ success: true, data: result });
 });
 
-router.patch('/users/:id', (req, res) => {
+router.patch('/users/:id', validateBody(updateUserSchema), (req, res) => {
   const db = req.app.get('db') as Database.Database;
   const user = updateUser(db, req.params.id, req.user!.userId, req.user!.role, req.body);
 
