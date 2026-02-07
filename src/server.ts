@@ -2,6 +2,7 @@ import express from 'express';
 import 'express-async-errors';
 import type Database from 'better-sqlite3';
 import healthRoutes from './routes/health.routes.js';
+import authRoutes from './routes/auth.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 
 export interface AppOptions {
@@ -18,6 +19,7 @@ export function createApp(options: AppOptions): express.Application {
 
   // Routes
   app.use(healthRoutes);
+  app.use(authRoutes);
 
   // Global error handler (must be last)
   app.use(errorHandler);
